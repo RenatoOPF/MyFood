@@ -103,7 +103,7 @@ public class UsuariosService {
     public String getAtributoUsuario(int id, String atributo) {
         Usuario u = getUsuario(id);
 
-        switch (atributo.toLowerCase()) {
+        switch (atributo) {
             case "id": return String.valueOf(u.getId());
             case "nome": return u.getNome();
             case "email": return u.getEmail();
@@ -150,7 +150,9 @@ public class UsuariosService {
         }
     }
 
-
+    public Map<Integer, Usuario> getUsuariosMap() {
+        return usuariosMap;
+    }
 
     public void listarUsuarios() {
         for (Usuario u : usuariosMap.values()) {

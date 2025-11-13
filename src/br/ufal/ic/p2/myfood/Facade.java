@@ -1,22 +1,29 @@
 package br.ufal.ic.p2.myfood;
 
 import java.util.List;
+
+import br.ufal.ic.p2.myfood.service.EmpresasService;
 import br.ufal.ic.p2.myfood.service.UsuariosService;
 
 public class Facade {
     private UsuariosService usuariosService;
+    private EmpresasService empresasService;
 
     public Facade() {
         usuariosService = new UsuariosService();
         usuariosService.carregarUsuarios();
+        empresasService = new EmpresasService(usuariosService.getUsuariosMap());
+        empresasService.carregarEmpresas();
     }
 
     public void zerarSistema() {
         usuariosService.zerar();
+        empresasService.zerar();
     }
 
     public void encerrarSistema() {
         usuariosService.salvar();
+        empresasService.salvar();
     }
 
     public int criarUsuario(String nome, String email, String senha, String endereco) {
@@ -36,19 +43,19 @@ public class Facade {
     }
 
     public int criarEmpresa(String tipoEmpresa, int dono, String nome, String endereco, String tipoCozinha) {
-        return 0;
+        return empresasService.criarEmpresa(tipoEmpresa, dono, nome, endereco, tipoCozinha);
     }
 
-    public List<List<String>> getEmpresasDoUsuario(int idDono) {
-        return null;
+    public String getEmpresasDoUsuario(int idDono) {
+        return empresasService.getEmpresasDoUsuarioFormatado(idDono);
     }
 
     public String getAtributoEmpresa(int empresa, String atributo) {
-        return null;
+        return empresasService.getAtributoEmpresa(empresa, atributo);
     }
 
     public int getIdEmpresa(int idDono, String nome, int indice) {
-        return 0;
+        return empresasService.getIdEmpresa(idDono, nome, indice);
     }
 
     public int criarProduto(int empresa, String nome, Float valor, String categoria) {
