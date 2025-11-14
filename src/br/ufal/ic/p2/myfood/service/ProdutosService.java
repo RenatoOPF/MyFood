@@ -79,7 +79,7 @@ public class ProdutosService {
         }
     }
 
-    // Cria uma nova empresa
+    // Cria um nova produto
     public int criarProduto(int empresa, String nome, Float valor, String categoria) {
         // Valida os dados
         validarProduto(empresa, nome, valor, categoria);
@@ -178,5 +178,9 @@ public class ProdutosService {
         sb.append("]}");
 
         return sb.toString();
+    }
+
+    public Map<Integer, Produto> getProdutosMap() {
+        return produtosMap;
     }
 }
