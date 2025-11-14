@@ -1,6 +1,7 @@
 package br.ufal.ic.p2.myfood.service;
 
 import br.ufal.ic.p2.myfood.models.DonoDeEmpresa;
+import br.ufal.ic.p2.myfood.models.Empresa;
 import br.ufal.ic.p2.myfood.models.Produto;
 import br.ufal.ic.p2.myfood.models.Usuario;
 
@@ -15,10 +16,11 @@ public class ProdutosService {
     private Map<Integer, Produto> produtosMap = new HashMap<>();
     private int proximoId = 1;
     private final String ARQUIVO = "produtos.csv";
-    // referência para verificar donos
+    private Map<Integer, Empresa> empresasMap;
 
-    public ProdutosService(Map<Integer, Usuario> usuariosMap) {
-
+    public ProdutosService(Map<Integer, Empresa> empresasMap) {
+        this.empresasMap = empresasMap;
+        carregarProdutos();
     }
 
     // Zera todas as produtos
@@ -134,15 +136,47 @@ public class ProdutosService {
         Produto p = produtosMap.values().stream()
                 .filter(prod -> prod.getEmpresa() == empresa && prod.getNome().equals(nome))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Produto nao cadastrado"));
+                .orElseThrow(() -> new RuntimeException("Produto nao encontrado"));
 
         switch (atributo.toLowerCase()) {
             case "id": return String.valueOf(p.getId());
             case "nome": return p.getNome();
-            case "valor": return String.valueOf(p.getValor());
+            case "valor": return String.format("%.2f", p.getValor());
             case "categoria": return p.getCategoria();
-            case "empresa": return String.valueOf(p.getEmpresa());
-            default: throw new RuntimeException("Atributo invalido");
+            case "empresa":
+                Empresa e = empresasMap.get(p.getEmpresa());
+                return e.getNome();
+            default: throw new RuntimeException("Atributo nao existe");
         }
+    }
+
+    public String listarProdutos(int idEmpresa) {
+        Empresa empresa = empresasMap.get(idEmpresa);
+        if (empresa == null) {
+            throw new RuntimeException("Empresa nao encontrada");
+        }
+
+        // filtra os produtos dessa empresa
+        List<Produto> produtosDaEmpresa = produtosMap.values().stream()
+                .filter(p -> p.getEmpresa() == idEmpresa)
+                .sorted(Comparator.comparingInt(Produto::getId))
+                .toList();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("{[");
+
+        for (int i = 0; i < produtosDaEmpresa.size(); i++) {
+            Produto p = produtosDaEmpresa.get(i);
+
+            sb.append(p.getNome());
+
+            if (i < produtosDaEmpresa.size() - 1) {
+                sb.append(", ");
+            }
+        }
+
+        sb.append("]}");
+
+        return sb.toString();
     }
 }

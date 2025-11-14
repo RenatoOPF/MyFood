@@ -16,7 +16,7 @@ public class Facade {
         usuariosService.carregarUsuarios();
         empresasService = new EmpresasService(usuariosService.getUsuariosMap());
         empresasService.carregarEmpresas();
-        produtosService = new ProdutosService(usuariosService.getUsuariosMap());
+        produtosService = new ProdutosService(empresasService.getEmpresasMap());
         produtosService.carregarProdutos();
     }
 
@@ -76,8 +76,8 @@ public class Facade {
         return produtosService.getProduto(nome, empresa, atributo);
     }
 
-    public List<String> listarProdutos(int empresa) {
-        return null;
+    public String listarProdutos(int empresa) {
+        return produtosService.listarProdutos(empresa);
     }
 
     public int criarPedido(int cliente, int empresa) {

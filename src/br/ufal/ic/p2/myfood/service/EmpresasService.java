@@ -213,4 +213,8 @@ public class EmpresasService {
         return filtradas.get(indice).getId();
     }
 
+    public Map<Integer, Empresa> getEmpresasMap() {
+        return empresasMap;
+    }
+
 }
