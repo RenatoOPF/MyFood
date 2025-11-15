@@ -1,16 +1,22 @@
 package br.ufal.ic.p2.myfood.service;
 
+import br.ufal.ic.p2.myfood.exceptions.AtributoException;
+import br.ufal.ic.p2.myfood.exceptions.LoginException;
+import br.ufal.ic.p2.myfood.exceptions.UsuarioException;
 import br.ufal.ic.p2.myfood.models.Usuario;
 import br.ufal.ic.p2.myfood.models.DonoDeEmpresa;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class UsuariosService {
     private Map<Integer, Usuario> usuariosMap = new HashMap<>();
     private int proximoId = 1;
     private final String ARQUIVO = "usuarios.csv";
+
+    public UsuariosService() {
+        carregarUsuarios();
+    }
 
     public void zerar() {
         usuariosMap.clear();
@@ -47,7 +53,7 @@ public class UsuariosService {
                 usuariosMap.put(id, u);
             }
 
-            proximoId = maiorId + 1; // atualiza o próximo ID para não sobrescrever
+            proximoId = maiorId + 1;
         } catch (IOException | NumberFormatException ex) {
             System.err.println("Erro ao carregar usuarios: " + ex.getMessage());
         }
@@ -97,7 +103,7 @@ public class UsuariosService {
                 return u.getId();
             }
         }
-        throw new RuntimeException("Login ou senha invalidos");
+        throw new LoginException("Login ou senha invalidos");
     }
 
     public String getAtributoUsuario(int id, String atributo) {
@@ -112,41 +118,43 @@ public class UsuariosService {
             case "cpf":
                 if (u instanceof DonoDeEmpresa) return ((DonoDeEmpresa) u).getCpf();
                 return "";
-            default: throw new RuntimeException("Atributo invalido.");
+            default: throw new AtributoException("Atributo invalido.");
         }
     }
 
     private Usuario getUsuario(int id) {
         Usuario u = usuariosMap.get(id);
-        if (u == null) throw new RuntimeException("Usuario nao cadastrado.");
+        if (u == null) {
+            throw new UsuarioException("Usuario nao cadastrado.");
+        }
         return u;
     }
 
     private void validarUsuario(String nome, String email, String senha, String endereco, String cpf, boolean isDono) {
         if (nome == null || nome.trim().isEmpty()) {
-            throw new RuntimeException("Nome invalido");
+            throw new UsuarioException("Nome invalido");
         }
 
         if (email == null || email.trim().isEmpty() || !email.contains("@")) {
-            throw new RuntimeException("Email invalido");
+            throw new UsuarioException("Email invalido");
         }
 
         if (isDono) {
             if (cpf == null || cpf.trim().isEmpty() || cpf.length() != 14) {
-                throw new RuntimeException("CPF invalido");
+                throw new UsuarioException("CPF invalido");
             }
         }
 
         if (senha == null || senha.trim().isEmpty()) {
-            throw new RuntimeException("Senha invalido");
+            throw new LoginException("Senha invalido");
         }
 
         if (endereco == null || endereco.trim().isEmpty()) {
-            throw new RuntimeException("Endereco invalido");
+            throw new UsuarioException("Endereco invalido");
         }
 
         if(usuariosMap.values().stream().anyMatch(u -> u.getEmail().equals(email))) {
-            throw new RuntimeException("Conta com esse email ja existe");
+            throw new LoginException("Conta com esse email ja existe");
         }
     }
 
@@ -154,11 +162,10 @@ public class UsuariosService {
         return usuariosMap;
     }
 
+    // Debugando
     public void listarUsuarios() {
         for (Usuario u : usuariosMap.values()) {
-            System.out.println("[DEBUG] Usuario ID=" + u.getId() +
-                    " | Nome=" + u.getNome() +
-                    " | Email=" + u.getEmail());
+            System.out.println("Usuario ID=" + u.getId() + "Nome= " + u.getNome() + " Email= " + u.getEmail());
         }
     }
 }

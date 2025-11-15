@@ -1,5 +1,8 @@
 package br.ufal.ic.p2.myfood.service;
 
+import br.ufal.ic.p2.myfood.exceptions.AtributoException;
+import br.ufal.ic.p2.myfood.exceptions.PedidoException;
+import br.ufal.ic.p2.myfood.exceptions.ProdutoException;
 import br.ufal.ic.p2.myfood.models.*;
 
 import java.io.*;
@@ -64,7 +67,7 @@ public class PedidosService {
             proximoId = maiorId + 1;
 
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao carregar pedidos");
+            throw new PedidoException("Erro ao carregar pedidos");
         }
     }
 
@@ -88,7 +91,7 @@ public class PedidosService {
             }
 
         } catch (IOException ex) {
-            throw new RuntimeException("Erro ao salvar pedidos");
+            throw new PedidoException("Erro ao salvar pedidos");
         }
     }
 
@@ -114,7 +117,7 @@ public class PedidosService {
     public String getPedidos(int numero, String atributo) {
         Pedido pedido = pedidosMap.get(numero);
         if (atributo == null || atributo.trim().isEmpty()) {
-            throw new RuntimeException("Atributo invalido");
+            throw new AtributoException("Atributo invalido");
         }
         switch (atributo) {
             case "numero":
@@ -138,14 +141,14 @@ public class PedidosService {
             case "valor":
                 return String.format("%.2f", pedido.getValor());
             default:
-                throw new RuntimeException("Atributo nao existe");
+                throw new AtributoException("Atributo nao existe");
         }
     }
 
     public void fecharPedido(int numero) {
         Pedido pedido = pedidosMap.get(numero);
         if  (pedido == null) {
-            throw  new RuntimeException("Pedido nao encontrado");
+            throw  new PedidoException("Pedido nao encontrado");
         }
         pedido.setEstado("preparando");
         salvar();
@@ -153,18 +156,18 @@ public class PedidosService {
 
     public void removerProduto(int idPedido, String nomeProduto) {
         if (nomeProduto == null || nomeProduto.trim().isEmpty()) {
-            throw new RuntimeException("Produto invalido");
+            throw new ProdutoException("Produto invalido");
         }
 
         Pedido pedido = pedidosMap.get(idPedido);
         if (pedido.getEstado().equals("preparando")) {
-            throw new RuntimeException("Nao e possivel remover produtos de um pedido fechado");
+            throw new PedidoException("Nao e possivel remover produtos de um pedido fechado");
         }
         Produto p = getProdutoPorNome(nomeProduto, idPedido);
         if (p != null) {
             pedido.removeProduto(p);
         } else {
-            throw  new RuntimeException("Produto nao encontrado");
+            throw  new ProdutoException("Produto nao encontrado");
         }
         salvar();
     }
@@ -181,7 +184,7 @@ public class PedidosService {
     public void validarPedido(int cliente, int empresa) {
         Usuario dono = usuariosMap.get(cliente);
 
-        if (dono instanceof DonoDeEmpresa) throw new RuntimeException("Dono de empresa nao pode fazer um pedido");
+        if (dono instanceof DonoDeEmpresa) throw new PedidoException("Dono de empresa nao pode fazer um pedido");
 
         for (Pedido p : pedidosMap.values()) {
             // só interessa pedidos ainda abertos
@@ -189,7 +192,7 @@ public class PedidosService {
 
             // um cliente só pode ter um pedido aberto em uma empresa
             if (p.getCliente() == cliente && p.getEmpresa() == empresa) {
-                throw new RuntimeException("Nao e permitido ter dois pedidos em aberto para a mesma empresa");
+                throw new PedidoException("Nao e permitido ter dois pedidos em aberto para a mesma empresa");
             }
         }
     }
@@ -199,15 +202,15 @@ public class PedidosService {
         Produto produto = produtosMap.get(idProduto);
 
         if (pedido == null) {
-            throw new RuntimeException("Nao existe pedido em aberto");
+            throw new PedidoException("Nao existe pedido em aberto");
         }
 
         if (pedido.getEstado().equals("preparando")) {
-            throw new RuntimeException("Nao e possivel adcionar produtos a um pedido fechado");
+            throw new PedidoException("Nao e possivel adcionar produtos a um pedido fechado");
         }
 
         if (pedido.getEmpresa() != produto.getEmpresa()) {
-            throw new RuntimeException("O produto nao pertence a essa empresa");
+            throw new ProdutoException("O produto nao pertence a essa empresa");
         }
     }
 

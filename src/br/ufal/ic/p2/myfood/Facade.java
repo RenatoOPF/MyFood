@@ -1,11 +1,6 @@
 package br.ufal.ic.p2.myfood;
 
-import java.util.List;
-
-import br.ufal.ic.p2.myfood.service.EmpresasService;
-import br.ufal.ic.p2.myfood.service.ProdutosService;
-import br.ufal.ic.p2.myfood.service.UsuariosService;
-import br.ufal.ic.p2.myfood.service.PedidosService;
+import br.ufal.ic.p2.myfood.service.*;
 
 public class Facade {
     private UsuariosService usuariosService;
@@ -15,13 +10,9 @@ public class Facade {
 
     public Facade() {
         usuariosService = new UsuariosService();
-        usuariosService.carregarUsuarios();
         empresasService = new EmpresasService(usuariosService.getUsuariosMap());
-        empresasService.carregarEmpresas();
         produtosService = new ProdutosService(empresasService.getEmpresasMap());
-        produtosService.carregarProdutos();
         pedidosService = new PedidosService(usuariosService.getUsuariosMap(), empresasService.getEmpresasMap(),  produtosService.getProdutosMap());
-        pedidosService.carregarPedidos();
     }
 
     public void zerarSistema() {
@@ -38,6 +29,7 @@ public class Facade {
         pedidosService.salvar();
     }
 
+    // Usuarios
     public int criarUsuario(String nome, String email, String senha, String endereco) {
         return usuariosService.criarUsuario(nome, email, senha, endereco);
     }
@@ -54,6 +46,7 @@ public class Facade {
         return usuariosService.getAtributoUsuario(id, atributo);
     }
 
+    // Empresas
     public int criarEmpresa(String tipoEmpresa, int dono, String nome, String endereco, String tipoCozinha) {
         return empresasService.criarEmpresa(tipoEmpresa, dono, nome, endereco, tipoCozinha);
     }
@@ -70,6 +63,7 @@ public class Facade {
         return empresasService.getIdEmpresa(idDono, nome, indice);
     }
 
+    // Produtos
     public int criarProduto(int empresa, String nome, Float valor, String categoria) {
         return produtosService.criarProduto(empresa, nome, valor, categoria);
     }
@@ -86,6 +80,7 @@ public class Facade {
         return produtosService.listarProdutos(empresa);
     }
 
+    // Pedidos
     public int criarPedido(int cliente, int empresa) {
         return pedidosService.criarPedido(cliente, empresa);
     }

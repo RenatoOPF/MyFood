@@ -1,5 +1,8 @@
 package br.ufal.ic.p2.myfood.service;
 
+import br.ufal.ic.p2.myfood.exceptions.AtributoException;
+import br.ufal.ic.p2.myfood.exceptions.EmpresaException;
+import br.ufal.ic.p2.myfood.exceptions.ProdutoException;
 import br.ufal.ic.p2.myfood.models.DonoDeEmpresa;
 import br.ufal.ic.p2.myfood.models.Empresa;
 import br.ufal.ic.p2.myfood.models.Produto;
@@ -95,13 +98,13 @@ public class ProdutosService {
     // Validação de regras
     private void validarProduto(int empresa, String nome, Float valor, String categoria) {
         if (nome == null || nome.trim().isEmpty())
-            throw new RuntimeException("Nome invalido");
+            throw new ProdutoException("Nome invalido");
 
         if (valor == null || valor <= 0)
-            throw new RuntimeException("Valor invalido");
+            throw new ProdutoException("Valor invalido");
 
         if (categoria == null || categoria.trim().isEmpty())
-            throw new RuntimeException("Categoria invalido");
+            throw new ProdutoException("Categoria invalido");
 
 
         boolean mesmoNomeMesmoEmpresa = produtosMap.values().stream()
@@ -109,13 +112,13 @@ public class ProdutosService {
                         && p.getEmpresa() == empresa);
 
         if (mesmoNomeMesmoEmpresa) {
-            throw new RuntimeException("Ja existe um produto com esse nome para essa empresa");
+            throw new ProdutoException("Ja existe um produto com esse nome para essa empresa");
         }
     }
 
     public void editarProduto(int produto, String nome, Float valor, String categoria) {
         Produto p = produtosMap.get(produto);
-        if (p == null) throw new RuntimeException("Produto nao cadastrado");
+        if (p == null) throw new ProdutoException("Produto nao cadastrado");
         validarProduto(produto, nome, valor, categoria);
 
         p.setNome(nome);
@@ -126,17 +129,17 @@ public class ProdutosService {
 
     public String getProduto(String nome, int empresa, String atributo) {
         if (nome == null || nome.trim().isEmpty()) {
-            throw new RuntimeException("Nome invalido");
+            throw new ProdutoException("Nome invalido");
         }
         if (atributo == null || atributo.trim().isEmpty()) {
-            throw new RuntimeException("Atributo invalido");
+            throw new AtributoException("Atributo invalido");
         }
 
         // Encontra o produto na empresa pelo nome
         Produto p = produtosMap.values().stream()
                 .filter(prod -> prod.getEmpresa() == empresa && prod.getNome().equals(nome))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Produto nao encontrado"));
+                .orElseThrow(() -> new ProdutoException("Produto nao encontrado"));
 
         switch (atributo.toLowerCase()) {
             case "id": return String.valueOf(p.getId());
@@ -146,14 +149,14 @@ public class ProdutosService {
             case "empresa":
                 Empresa e = empresasMap.get(p.getEmpresa());
                 return e.getNome();
-            default: throw new RuntimeException("Atributo nao existe");
+            default: throw new AtributoException("Atributo nao existe");
         }
     }
 
     public String listarProdutos(int idEmpresa) {
         Empresa empresa = empresasMap.get(idEmpresa);
         if (empresa == null) {
-            throw new RuntimeException("Empresa nao encontrada");
+            throw new EmpresaException("Empresa nao encontrada");
         }
 
         // filtra os produtos dessa empresa

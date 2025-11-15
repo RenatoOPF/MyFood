@@ -1,5 +1,9 @@
 package br.ufal.ic.p2.myfood.service;
 
+import br.ufal.ic.p2.myfood.exceptions.AtributoException;
+import br.ufal.ic.p2.myfood.exceptions.EmpresaException;
+import br.ufal.ic.p2.myfood.exceptions.IndiceException;
+import br.ufal.ic.p2.myfood.exceptions.UsuarioException;
 import br.ufal.ic.p2.myfood.models.DonoDeEmpresa;
 import br.ufal.ic.p2.myfood.models.Empresa;
 import br.ufal.ic.p2.myfood.models.Usuario;
@@ -21,14 +25,12 @@ public class EmpresasService {
         carregarEmpresas();
     }
 
-    // Zera todas as empresas
     public void zerar() {
         empresasMap.clear();
         proximoId = 1;
         salvar();
     }
 
-    // Carrega empresas do CSV
     public void carregarEmpresas() {
         File arquivo = new File(ARQUIVO);
         if (!arquivo.exists()) return;
@@ -61,7 +63,6 @@ public class EmpresasService {
         }
     }
 
-    // Salva empresas no CSV
     public void salvar() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO))) {
             for (Empresa e : empresasMap.values()) {
@@ -79,18 +80,15 @@ public class EmpresasService {
         }
     }
 
-    // Cria uma nova empresa
     public int criarEmpresa(String tipoEmpresa, int dono, String nome, String endereco, String tipoCozinha) {
-        // Verifica se o usuário é um DonoDeEmpresa
+        // Verificando se o usuario é dono de empresa
         Usuario donoUsuario = usuariosMap.get(dono);
         if (!(donoUsuario instanceof DonoDeEmpresa)) {
-            throw new RuntimeException("Usuario nao pode criar uma empresa");
+            throw new UsuarioException("Usuario nao pode criar uma empresa");
         }
 
-        // Valida os dados
         validarEmpresa(tipoEmpresa, dono, nome, endereco, tipoCozinha);
 
-        // Cria empresa
         int idEmpresa = proximoId++;
         Empresa empresa = new Empresa(idEmpresa, dono, tipoEmpresa, nome, endereco, tipoCozinha);
         empresasMap.put(idEmpresa, empresa);
@@ -98,34 +96,33 @@ public class EmpresasService {
         return idEmpresa;
     }
 
-    // Validação de regras
     private void validarEmpresa(String tipoEmpresa, int dono, String nome, String endereco, String tipoCozinha) {
         if (tipoEmpresa == null || tipoEmpresa.trim().isEmpty())
-            throw new RuntimeException("Nome da empresa invalido");
+            throw new EmpresaException("Nome da empresa invalido");
 
         if (endereco == null || endereco.trim().isEmpty())
-            throw new RuntimeException("Endereco invalido");
+            throw new EmpresaException("Endereco invalido");
 
         if (tipoCozinha == null || tipoCozinha.trim().isEmpty())
-            throw new RuntimeException("Tipo de cozinha invalido");
+            throw new EmpresaException("Tipo de cozinha invalido");
 
-        // Verifica se outro dono já tem empresa com o mesmo nome
+        // Verificando se já existe uma empresa com mesmo nome, endereço e dono
         boolean mesmoNomeMesmoEnderecoMesmoDono = empresasMap.values().stream()
                 .anyMatch(e -> e.getNome().equals(nome)
                         && e.getEndereco().equals(endereco)
                         && e.getDono() == dono);
 
+        // Verificando se já existe uma empresa com o mesmo nome, mas outro dono
         boolean mesmoNomeOutroDono = empresasMap.values().stream()
                 .anyMatch(e -> e.getNome().equals(nome) && e.getDono() != dono);
 
         if (mesmoNomeMesmoEnderecoMesmoDono) {
-            throw new RuntimeException("Proibido cadastrar duas empresas com o mesmo nome e local");
+            throw new EmpresaException("Proibido cadastrar duas empresas com o mesmo nome e local");
         } else if (mesmoNomeOutroDono) {
-            throw new RuntimeException("Empresa com esse nome ja existe");
+            throw new EmpresaException("Empresa com esse nome ja existe");
         }
     }
 
-    // Lista empresas de um dono
     public List<Empresa> getEmpresasDoUsuario(int dono) {
         return empresasMap.values().stream()
                 .filter(e -> e.getId() == dono)
@@ -135,7 +132,7 @@ public class EmpresasService {
     public String getEmpresasDoUsuarioFormatado(int idDono) {
         Usuario usuario = usuariosMap.get(idDono);
         if (!(usuario instanceof DonoDeEmpresa)) {
-            throw new RuntimeException("Usuario nao pode criar uma empresa");
+            throw new UsuarioException("Usuario nao pode criar uma empresa");
         }
 
         List<Empresa> empresasDoDono = empresasMap.values().stream()
@@ -162,10 +159,10 @@ public class EmpresasService {
 
     public String getAtributoEmpresa(int empresa, String atributo) {
         Empresa e = getEmpresa(empresa);
-        if (e == null) throw new RuntimeException("Empresa nao cadastrada");
+        if (e == null) throw new EmpresaException("Empresa nao cadastrada");
 
         if (atributo == null || atributo.trim().isEmpty()) {
-            throw new RuntimeException("Atributo invalido");
+            throw new AtributoException("Atributo invalido");
         }
 
         switch (atributo) {
@@ -178,23 +175,23 @@ public class EmpresasService {
                 Usuario dono = usuariosMap.get(e.getDono());
                 return dono.getNome();
             default:
-                throw new RuntimeException("Atributo invalido");
+                throw new AtributoException("Atributo invalido");
         }
     }
 
     private Empresa getEmpresa(int id) {
         Empresa e = empresasMap.get(id);
-        if (e == null) throw new RuntimeException("Empresa nao cadastrada");
+        if (e == null) throw new EmpresaException("Empresa nao cadastrada");
         return e;
     }
 
     public int getIdEmpresa(int idDono, String nome, int indice) {
         if (nome == null || nome.trim().isEmpty()) {
-            throw new RuntimeException("Nome invalido");
+            throw new EmpresaException("Nome invalido");
         }
 
         if (indice < 0) {
-            throw new RuntimeException("Indice invalido");
+            throw new IndiceException("Indice invalido");
         }
 
         // Filtra empresas do dono com o nome informado
@@ -203,11 +200,11 @@ public class EmpresasService {
                 .toList();
 
         if (filtradas.isEmpty()) {
-            throw new RuntimeException("Nao existe empresa com esse nome");
+            throw new EmpresaException("Nao existe empresa com esse nome");
         }
 
         if (indice >= filtradas.size()) {
-            throw new RuntimeException("Indice maior que o esperado");
+            throw new IndiceException("Indice maior que o esperado");
         }
 
         return filtradas.get(indice).getId();
