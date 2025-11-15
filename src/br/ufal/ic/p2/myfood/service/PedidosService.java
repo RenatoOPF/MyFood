@@ -3,9 +3,7 @@ package br.ufal.ic.p2.myfood.service;
 import br.ufal.ic.p2.myfood.models.*;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PedidosService {
@@ -35,46 +33,62 @@ public class PedidosService {
         if (!arquivo.exists()) return;
 
         try (BufferedReader br = new BufferedReader(new FileReader(arquivo))) {
+
             String linha;
             int maiorId = 0;
 
             while ((linha = br.readLine()) != null) {
-                String[] partes = linha.split(";");
-                if (partes.length < 4) continue;
+                String[] p = linha.split(";");
 
-                int id = Integer.parseInt(partes[0]);
-                int cliente = Integer.parseInt(partes[1]);
-                int empresa = Integer.parseInt(partes[2]);
-                String estado = partes[3];
-                Float valor = Float.parseFloat(partes[4]);
+                int numero = Integer.parseInt(p[0]);
+                int cliente = Integer.parseInt(p[1]);
+                int empresa = Integer.parseInt(p[2]);
+                String estado = p[3];
 
-                Pedido p = new Pedido(id, cliente, empresa);
-                pedidosMap.put(id, p);
+                Pedido pedido = new Pedido(numero, cliente, empresa);
+                pedido.setEstado(estado);
 
-                if (id > maiorId) maiorId = id;
+                // produtos do pedido
+                if (p.length >= 5 && !p[4].isEmpty()) {
+                    String[] ids = p[4].split(",");
+                    for (String idProd : ids) {
+                        Produto prod = produtosMap.get(Integer.parseInt(idProd));
+                        if (prod != null) pedido.addProduto(prod);
+                    }
+                }
+
+                pedidosMap.put(numero, pedido);
+                maiorId = Math.max(maiorId, numero);
             }
 
             proximoId = maiorId + 1;
 
-        } catch (IOException | NumberFormatException ex) {
-            System.err.println("Erro ao carregar pedidos: " + ex.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao carregar pedidos");
         }
     }
 
     // Salva pedidos no CSV
     public void salvar() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO))) {
+
             for (Pedido p : pedidosMap.values()) {
-                pw.printf("%d;%d;%d;%s;%f%n",
+
+                String listaProdutos = p.getProdutos().stream()
+                        .map(prod -> String.valueOf(prod.getId()))
+                        .collect(Collectors.joining(","));
+
+                pw.printf("%d;%d;%d;%s;%s%n",
                         p.getNumero(),
                         p.getCliente(),
                         p.getEmpresa(),
                         p.getEstado(),
-                        p.getValor()
+                        listaProdutos
                 );
             }
+
         } catch (IOException ex) {
-            System.err.println("Erro ao salvar pedidos: " + ex.getMessage());
+            throw new RuntimeException("Erro ao salvar pedidos");
         }
     }
 
@@ -94,6 +108,7 @@ public class PedidosService {
         Pedido pedido = pedidosMap.get(numero);
         Produto p = produtosMap.get(produto);
         pedido.addProduto(p);
+        salvar();
     }
 
     public String getPedidos(int numero, String atributo) {
@@ -133,15 +148,34 @@ public class PedidosService {
             throw  new RuntimeException("Pedido nao encontrado");
         }
         pedido.setEstado("preparando");
+        salvar();
     }
 
-    public void removerProduto(int pedido, String produto) {
-        Pedido p = pedidosMap.get(pedido);
+    public void removerProduto(int idPedido, String nomeProduto) {
+        if (nomeProduto == null || nomeProduto.trim().isEmpty()) {
+            throw new RuntimeException("Produto invalido");
+        }
 
+        Pedido pedido = pedidosMap.get(idPedido);
+        if (pedido.getEstado().equals("preparando")) {
+            throw new RuntimeException("Nao e possivel remover produtos de um pedido fechado");
+        }
+        Produto p = getProdutoPorNome(nomeProduto, idPedido);
+        if (p != null) {
+            pedido.removeProduto(p);
+        } else {
+            throw  new RuntimeException("Produto nao encontrado");
+        }
+        salvar();
     }
 
     public int getNumeroPedido(int cliente, int empresa, int indice) {
-        return 0;
+        List<Pedido> pedidos = pedidosMap.values().stream()
+                .filter(p -> p.getCliente() == cliente && p.getEmpresa() == empresa)
+                .sorted(Comparator.comparingInt(Pedido::getNumero)) // mais antigo primeiro
+                .toList();
+
+        return pedidos.get(indice).getNumero();
     }
 
     public void validarPedido(int cliente, int empresa) {
@@ -149,8 +183,12 @@ public class PedidosService {
 
         if (dono instanceof DonoDeEmpresa) throw new RuntimeException("Dono de empresa nao pode fazer um pedido");
 
-        for(Pedido p : pedidosMap.values()) {
-            if(p.getEmpresa() == empresa) {
+        for (Pedido p : pedidosMap.values()) {
+            // só interessa pedidos ainda abertos
+            if (!"aberto".equals(p.getEstado())) continue;
+
+            // um cliente só pode ter um pedido aberto em uma empresa
+            if (p.getCliente() == cliente && p.getEmpresa() == empresa) {
                 throw new RuntimeException("Nao e permitido ter dois pedidos em aberto para a mesma empresa");
             }
         }
@@ -160,15 +198,29 @@ public class PedidosService {
         Pedido pedido = pedidosMap.get(numero);
         Produto produto = produtosMap.get(idProduto);
 
+        if (pedido == null) {
+            throw new RuntimeException("Nao existe pedido em aberto");
+        }
+
         if (pedido.getEstado().equals("preparando")) {
             throw new RuntimeException("Nao e possivel adcionar produtos a um pedido fechado");
         }
 
-        if (pedido == null) {
-            throw new RuntimeException("Nao existe pedido em aberto");
-        }
         if (pedido.getEmpresa() != produto.getEmpresa()) {
             throw new RuntimeException("O produto nao pertence a essa empresa");
         }
+    }
+
+    public Produto getProdutoPorNome(String nome, int pedido) {
+        Pedido p = pedidosMap.get(pedido);
+        List<Produto> produtos;
+
+        produtos = p.getProdutos();
+        for (Produto produto : produtos) {
+            if (produto.getNome().equals(nome)) {
+                return produto;
+            }
+        }
+        return null;
     }
 }

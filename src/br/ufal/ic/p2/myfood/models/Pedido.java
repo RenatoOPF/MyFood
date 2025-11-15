@@ -9,7 +9,6 @@ public class Pedido {
     private int empresa;
     private String estado;
     private List<Produto> produtos;
-    private float valor;
 
     public Pedido(int numero, int cliente, int empresa) {
         this.numero = numero;
@@ -26,10 +25,11 @@ public class Pedido {
     public List<Produto> getProdutos() { return produtos; }
 
     public float getValor() {
+        float total = 0f;
         for (Produto produto : produtos) {
-            valor += produto.getValor();
+            total += produto.getValor();
         }
-        return valor;
+        return total;
     }
 
     public void addProduto(Produto produto) {
